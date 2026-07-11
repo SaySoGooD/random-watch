@@ -1,20 +1,20 @@
-# tv_filter_dto.py
 from dataclasses import dataclass
 from typing import ClassVar, Literal
 
-from src.application.tmdb.filter_dto.base_filter_dto import BaseFilterDTO
-from src.application.tmdb.filter_dto.filter_settings_dto import (
-    AirDateDTO, NetworkDTO, ContentRatingsDTO,
-)
+from src.application.tmdb.filter_dto.base_filter_dto import BaseFilterDTO, param
 
 
 @dataclass
 class TvFilterDTO(BaseFilterDTO):
     contentType: ClassVar[Literal["tv"]] = "tv"
 
-    airDate: AirDateDTO | None = None
-    status: list[str] | None = None
-    networks: list[NetworkDTO] | None = None
-    contentRatings: ContentRatingsDTO | None = None
-    spokenLanguages: list[str] | None = None
-    originCountries: list[str] | None = None
+    air_date_gte: str | None = param("air_date.gte")
+    air_date_lte: str | None = param("air_date.lte")
+    first_air_date_year: int | None = None
+
+    certification_country: str | None = None
+    certification: str | None = None
+
+    with_networks: str | None = None
+    with_status: str | None = None
+    with_spoken_languages: str | None = None

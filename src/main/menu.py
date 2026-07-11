@@ -3,21 +3,31 @@ from __future__ import annotations
 from typing import Callable, Literal
 
 from src.application.tmdb.filter_dto.any_filter_dto import AnyFilterDTO
+from src.application.tmdb.filter_dto.base_filter_dto import base_filter_values
 from src.application.tmdb.filter_dto.movie_filter_dto import MovieFilterDTO
 from src.application.tmdb.filter_dto.tv_filter_dto import TvFilterDTO
 from src.application.tmdb.filter_dto.filter_settings_dto import (
-    GenresDTO, GenreDTO, RangeDTO, SortDTO, RandomDTO,
+    GenreDTO, RandomDTO,
 )
 
 FilterDTO = MovieFilterDTO | TvFilterDTO | AnyFilterDTO
 ContentType = Literal["movie", "tv", "any"]
 
-COMMON_FILTER_FIELDS = (
-    "language", "region", "genres", "rating", "votes",
-    "popularity", "runtime", "originalLanguage",
-    "countries", "companies", "keywords", "adult",
-    "sort", "random", "pagination",
-)
+
+def create_filter_dto(
+    content_type: ContentType,
+    source: FilterDTO | None = None,
+) -> FilterDTO:
+    """Create a FilterDTO of *content_type*, copying shared fields from *source*."""
+    shared = base_filter_values(source) if source else {}
+    match content_type:
+        case "movie":
+            return MovieFilterDTO(**shared)
+        case "tv":
+            return TvFilterDTO(**shared)
+        case "any":
+            return AnyFilterDTO(**shared)
+
 
 MOVIE_GENRES = [
     GenreDTO(28, "Action"),
@@ -34,31 +44,6 @@ TV_GENRES = [
     GenreDTO(18, "Drama"),
     GenreDTO(10765, "Sci-Fi & Fantasy"),
 ]
-
-
-# ---------------------------------------------------------------------------
-# Domain helpers (unchanged logic, extracted to module level)
-# ---------------------------------------------------------------------------
-
-def create_filter_dto(
-    content_type: ContentType,
-    source: FilterDTO | None = None,
-) -> FilterDTO:
-    """Create a FilterDTO of *content_type*, copying common fields from *source*."""
-    common: dict = {}
-    if source is not None:
-        common = {
-            f: getattr(source, f)
-            for f in COMMON_FILTER_FIELDS
-            if hasattr(source, f)
-        }
-    match content_type:
-        case "movie":
-            return MovieFilterDTO(contentType="movie", **common)
-        case "tv":
-            return TvFilterDTO(contentType="tv", **common)
-        case "any":
-            return AnyFilterDTO(contentType="any", **common)
 
 
 def get_genres(content_type: ContentType) -> list[GenreDTO]:
@@ -175,6 +160,8 @@ class FilterMenu:
     def __init__(self, dto: FilterDTO, genres: list[GenreDTO]) -> None:
         self.dto = dto
         self.genres = genres
+        self._include: list[GenreDTO] = []
+        self._exclude: list[GenreDTO] = []
 
     def run(self) -> FilterDTO:
         """Run the filter menu and return the configured DTO."""
@@ -213,6 +200,7 @@ class FilterMenu:
         def switch(ct: ContentType) -> None:
             self.dto = create_filter_dto(ct, self.dto)
             self.genres = get_genres(ct)
+            self._sync_genres()
 
         Menu("CONTENT TYPE", [
             ("Movie",          lambda: switch("movie")),
@@ -221,12 +209,9 @@ class FilterMenu:
         ]).run()
 
     def _genre_menu(self) -> None:
-        if self.dto.genres is None:
-            self.dto.genres = GenresDTO(include=[], exclude=[])
-
         Menu("GENRES", [
-            ("Add include", lambda: self._pick_genre(self.dto.genres.include)),
-            ("Add exclude", lambda: self._pick_genre(self.dto.genres.exclude)),
+            ("Add include", lambda: self._pick_genre(self._include)),
+            ("Add exclude", lambda: self._pick_genre(self._exclude)),
             ("Clear all",   self._clear_genres),
         ]).run()
 
@@ -244,56 +229,60 @@ class FilterMenu:
                 genre = self.genres[idx]
                 if genre.id not in {g.id for g in target}:
                     target.append(genre)
+                    self._sync_genres()
         except ValueError:
             pass
 
+    def _sync_genres(self) -> None:
+        self.dto.with_genres = "|".join(str(g.id) for g in self._include) or None
+        self.dto.without_genres = "|".join(str(g.id) for g in self._exclude) or None
+
     def _clear_genres(self) -> None:
-        self.dto.genres.include.clear()
-        self.dto.genres.exclude.clear()
+        self._include.clear()
+        self._exclude.clear()
+        self._sync_genres()
 
     def _reviews_menu(self) -> None:
         try:
             value = int(input("Minimum reviews: "))
-            if self.dto.votes is None:
-                self.dto.votes = RangeDTO(min=value, max=99_999_999)
-            else:
-                self.dto.votes.min = value
+            self.dto.vote_count_gte = float(value)
         except ValueError:
             pass
 
     def _rating_menu(self) -> None:
-        mn, mx = _prompt_range("rating")        # DRY: shared helper
-        self.dto.rating = RangeDTO(min=mn, max=mx)
+        mn, mx = _prompt_range("rating")
+        self.dto.vote_average_gte = mn
+        self.dto.vote_average_lte = mx
 
     def _popularity_menu(self) -> None:
-        mn, mx = _prompt_range("popularity")    # DRY: same helper
-        self.dto.popularity = RangeDTO(min=mn, max=mx)
+        mn, mx = _prompt_range("popularity")
+        self.dto.popularity_gte = mn
+        self.dto.popularity_lte = mx
 
     def _language_menu(self) -> None:
         value = _prompt_str("Language (en, ja, ko): ")
         if value:
-            self.dto.originalLanguage = [value]
+            self.dto.with_original_language = value
 
     def _country_menu(self) -> None:
         value = _prompt_str("Country (US, JP): ")
         if value:
-            self.dto.countries = [value]
+            self.dto.with_origin_country = value
 
     def _sort_menu(self) -> None:
-        self.dto.sort = SortDTO(
-            field=_prompt_str("Sort field: "),
-            direction=_prompt_str("Direction (asc/desc): "),
-        )
+        field = _prompt_str("Sort field: ")
+        direction = _prompt_str("Direction (asc/desc): ")
+        self.dto.sort_by = f"{field}.{direction}"
 
     def _random_menu(self) -> None:
         self.dto.random = RandomDTO(enabled=True, seed=None)
 
     # Stubs — not yet implemented
-    def _year_menu(self)          -> None: print("TODO: ReleaseDateDTO")
-    def _runtime_menu(self)       -> None: print("TODO: RuntimeDTO")
-    def _company_menu(self)       -> None: print("TODO: CompanyDTO")
-    def _keyword_menu(self)       -> None: print("TODO: KeywordDTO")
-    def _certification_menu(self) -> None: print("TODO: CertificationDTO")
+    def _year_menu(self)          -> None: print("TODO: primary_release_date / air_date")
+    def _runtime_menu(self)       -> None: print("TODO: with_runtime")
+    def _company_menu(self)       -> None: print("TODO: with_companies")
+    def _keyword_menu(self)       -> None: print("TODO: with_keywords")
+    def _certification_menu(self) -> None: print("TODO: certification")
 
 
 # ---------------------------------------------------------------------------
