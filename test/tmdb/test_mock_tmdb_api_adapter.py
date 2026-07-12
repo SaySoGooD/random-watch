@@ -16,10 +16,6 @@ _BASE_URL = "https://api.themoviedb.org/3"
 
 _FAKE_FILTER_PARAMS: dict = {"sort_by": "popularity.desc", "page": "1"}
 
-# ---------------------------------------------------------------------------
-# Sample TMDB API payloads
-# ---------------------------------------------------------------------------
-
 _MOVIE_PAYLOAD: dict = {
     "page": 1,
     "total_pages": 10,
@@ -75,9 +71,6 @@ _GENRES_PAYLOAD: dict = {
     ]
 }
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _make_session(payload: dict) -> MagicMock:
     """Build a mock aiohttp.ClientSession whose GET returns *payload* as JSON."""
@@ -126,10 +119,6 @@ def _called_params(session: MagicMock) -> dict:
     """Return the params keyword argument from the last session.get() call."""
     return session.get.call_args.kwargs["params"]
 
-
-# ---------------------------------------------------------------------------
-# Tests – fetch_random_movies
-# ---------------------------------------------------------------------------
 
 class TestFetchRandomMovies:
     """Tests for the fetch_random_movies public method."""
@@ -224,10 +213,6 @@ class TestFetchRandomMovies:
         assert result[1].title == "Dune"
 
 
-# ---------------------------------------------------------------------------
-# Tests – fetch_random_tv
-# ---------------------------------------------------------------------------
-
 class TestFetchRandomTv:
     """Tests for the fetch_random_tv public method."""
 
@@ -297,10 +282,6 @@ class TestFetchRandomTv:
 
         assert result == []
 
-
-# ---------------------------------------------------------------------------
-# Tests – fetch_movie_genres
-# ---------------------------------------------------------------------------
 
 class TestFetchMovieGenres:
     """Tests for the fetch_movie_genres public method."""
@@ -381,10 +362,6 @@ class TestFetchMovieGenres:
         assert result == []
 
 
-# ---------------------------------------------------------------------------
-# Tests – fetch_tv_genres
-# ---------------------------------------------------------------------------
-
 class TestFetchTvGenres:
     """Tests for the fetch_tv_genres public method."""
 
@@ -434,10 +411,6 @@ class TestFetchTvGenres:
 
         assert "language" not in _called_params(session)
 
-
-# ---------------------------------------------------------------------------
-# Tests – optional field edge cases (movie mapping)
-# ---------------------------------------------------------------------------
 
 class TestMovieMappingEdgeCases:
     """Tests for optional-field defaults in movie mapping."""
@@ -490,10 +463,6 @@ class TestMovieMappingEdgeCases:
         assert result[0].poster_path is None
 
 
-# ---------------------------------------------------------------------------
-# Tests – optional field edge cases (TV mapping)
-# ---------------------------------------------------------------------------
-
 class TestTvMappingEdgeCases:
     """Tests for optional-field defaults in TV mapping."""
 
@@ -541,10 +510,6 @@ class TestTvMappingEdgeCases:
 
         assert result[0].origin_country == []
 
-
-# ---------------------------------------------------------------------------
-# Tests – HTTP error propagation
-# ---------------------------------------------------------------------------
 
 class TestHttpErrorPropagation:
     """Tests that ClientResponseError from raise_for_status() bubbles up correctly."""
@@ -594,10 +559,6 @@ class TestHttpErrorPropagation:
             await adapter.fetch_tv_genres()
         assert exc_info.value.status == 503
 
-
-# ---------------------------------------------------------------------------
-# Tests – _get parameter-handling logic
-# ---------------------------------------------------------------------------
 
 class TestGetParamHandling:
     """Tests for None-value filtering and api_key injection inside _get."""
