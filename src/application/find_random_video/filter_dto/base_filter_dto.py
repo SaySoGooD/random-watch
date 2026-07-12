@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, fields
 
-from src.application.tmdb.filter_dto.filter_settings_dto import RandomDTO
+from src.application.find_random_video.filter_dto.filter_settings_dto import RandomDTO
 
 _EXCLUDED_FROM_PARAMS = frozenset({"random"})
 

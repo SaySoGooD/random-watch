@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import ClassVar, Literal
 
-from src.application.tmdb.filter_dto.base_filter_dto import BaseFilterDTO, param
+from src.application.find_random_video.filter_dto.base_filter_dto import (
+    BaseFilterDTO,
+    param,
+)
 
 
 @dataclass
