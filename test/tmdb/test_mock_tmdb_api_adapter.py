@@ -1,13 +1,14 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from aiohttp import ClientResponseError
 
 from src.adapter.tmdb.tmdb_api_adapter import TMDBAPIAdapter
-from src.application.tmdb.filter_dto.movie_filter_dto import MovieFilterDTO
-from src.application.tmdb.filter_dto.tv_filter_dto import TvFilterDTO
-from src.application.tmdb.result_dto.movie_dto import MovieDTO
-from src.application.tmdb.result_dto.tv_dto import TvDTO
-from src.application.tmdb.filter_dto.filter_settings_dto import GenreDTO
+from src.application.find_random_video.filter_dto.filter_settings_dto import GenreDTO
+from src.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
+from src.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
+from src.application.find_random_video.result_dto.movie_dto import MovieDTO
+from src.application.find_random_video.result_dto.tv_dto import TvDTO
 
 _ADAPTER_MODULE = "src.adapter.tmdb.tmdb_api_adapter"
 
@@ -104,6 +105,7 @@ def _make_error_session(status: int) -> MagicMock:
     session.get.return_value.__aexit__ = AsyncMock(return_value=False)
 
     return session
+
 
 def _called_url(session: MagicMock) -> str:
     """Return the URL from the last session.get() call."""
@@ -430,7 +432,9 @@ class TestMovieMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_poster_path_defaults_to_none(self):
         """poster_path is None when the key is absent in the API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("poster_path")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("poster_path"))
+        )
         result = await adapter.fetch_random_movies(MagicMock(spec=MovieFilterDTO))
 
         assert result[0].poster_path is None
@@ -438,7 +442,9 @@ class TestMovieMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_backdrop_path_defaults_to_none(self):
         """backdrop_path is None when the key is absent in the API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("backdrop_path")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("backdrop_path"))
+        )
         result = await adapter.fetch_random_movies(MagicMock(spec=MovieFilterDTO))
 
         assert result[0].backdrop_path is None
@@ -446,7 +452,9 @@ class TestMovieMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_release_date_defaults_to_empty_string(self):
         """release_date falls back to '' when the key is absent in the API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("release_date")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("release_date"))
+        )
         result = await adapter.fetch_random_movies(MagicMock(spec=MovieFilterDTO))
 
         assert result[0].release_date is None
@@ -481,7 +489,9 @@ class TestTvMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_poster_path_defaults_to_none(self):
         """poster_path is None when the key is absent in the TV API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("poster_path")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("poster_path"))
+        )
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
         assert result[0].poster_path is None
@@ -489,7 +499,9 @@ class TestTvMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_backdrop_path_defaults_to_none(self):
         """backdrop_path is None when the key is absent in the TV API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("backdrop_path")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("backdrop_path"))
+        )
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
         assert result[0].backdrop_path is None
@@ -497,7 +509,9 @@ class TestTvMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_first_air_date_defaults_to_empty_string(self):
         """first_air_date falls back to '' when the key is absent in the TV API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("first_air_date")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("first_air_date"))
+        )
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
         assert result[0].first_air_date is None
@@ -505,7 +519,9 @@ class TestTvMappingEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_origin_country_defaults_to_empty_list(self):
         """origin_country falls back to [] when the key is absent in the TV API response."""
-        adapter = TMDBAPIAdapter(_API_KEY, _make_session(self._payload_without("origin_country")))
+        adapter = TMDBAPIAdapter(
+            _API_KEY, _make_session(self._payload_without("origin_country"))
+        )
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
         assert result[0].origin_country == []

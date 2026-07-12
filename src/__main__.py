@@ -1,5 +1,6 @@
-from src.main.menu import main
-
+from src.main.dependency_injection import container
 
 if __name__ == "__main__":
-    main()
+    await container.init_resources()
+
+    use_case = container.get_random_collection_usecase()

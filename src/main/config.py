@@ -10,5 +10,3 @@ class Config(BaseSettings):
 
     def get_object() -> Config:
         return Config()
-
-

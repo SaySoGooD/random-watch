@@ -1,12 +1,12 @@
 import asyncio
 import random
 
-from src.application.tmdb.interfaces.i_tmdb_api_adapter import ITMDBAPIAdapter
-from src.application.tmdb.result_dto.movie_dto import MovieDTO
-from src.application.tmdb.result_dto.tv_dto import TvDTO
-from src.application.tmdb.filter_dto.any_filter_dto import AnyFilterDTO
-from src.application.tmdb.filter_dto.movie_filter_dto import MovieFilterDTO
-from src.application.tmdb.filter_dto.tv_filter_dto import TvFilterDTO
+from src.application.find_random_video.filter_dto.any_filter_dto import AnyFilterDTO
+from src.application.find_random_video.interfaces.i_tmdb_api_adapter import (
+    ITMDBAPIAdapter,
+)
+from src.application.find_random_video.result_dto.movie_dto import MovieDTO
+from src.application.find_random_video.result_dto.tv_dto import TvDTO
 
 
 class GetRandomCollectionUseCase:
@@ -18,7 +18,6 @@ class GetRandomCollectionUseCase:
         filter_dto: AnyFilterDTO,
         count: int = 5,
     ) -> list[MovieDTO | TvDTO]:
-
         movie_filter, tv_filter = filter_dto.split()
 
         movie_task = self._adapter.fetch_random_movies(movie_filter)

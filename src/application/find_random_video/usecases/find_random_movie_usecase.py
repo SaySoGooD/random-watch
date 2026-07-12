@@ -1,10 +1,14 @@
 import random
 from dataclasses import replace
 
-from src.application.tmdb.interfaces.i_find_random_movie_usecase import IGetRandomMovieUseCase
-from src.application.tmdb.filter_dto.movie_filter_dto import MovieFilterDTO
-from src.application.tmdb.api_dto.tmdb_response_dto import MovieDTO
-from src.application.tmdb.interfaces.i_tmdb_api_adapter import ITMDBAPIAdapter
+from src.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
+from src.application.find_random_video.interfaces.i_find_random_movie_usecase import (
+    IGetRandomMovieUseCase,
+)
+from src.application.find_random_video.interfaces.i_tmdb_api_adapter import (
+    ITMDBAPIAdapter,
+)
+from src.application.find_random_video.result_dto.movie_dto import MovieDTO
 
 
 class GetRandomMovieUseCase(IGetRandomMovieUseCase):

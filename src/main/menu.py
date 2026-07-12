@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from typing import Callable, Literal
 
-from src.application.tmdb.filter_dto.any_filter_dto import AnyFilterDTO
-from src.application.tmdb.filter_dto.base_filter_dto import base_filter_values
-from src.application.tmdb.filter_dto.movie_filter_dto import MovieFilterDTO
-from src.application.tmdb.filter_dto.tv_filter_dto import TvFilterDTO
-from src.application.tmdb.filter_dto.filter_settings_dto import (
-    GenreDTO, RandomDTO,
+from src.application.find_random_video.filter_dto.any_filter_dto import AnyFilterDTO
+from src.application.find_random_video.filter_dto.base_filter_dto import (
+    base_filter_values,
 )
+from src.application.find_random_video.filter_dto.filter_settings_dto import (
+    GenreDTO,
+    RandomDTO,
+)
+from src.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
+from src.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
 
 FilterDTO = MovieFilterDTO | TvFilterDTO | AnyFilterDTO
 ContentType = Literal["movie", "tv", "any"]
@@ -128,6 +131,7 @@ class Menu:
 # Input helpers  (DRY: one place for each repeated input pattern)
 # ---------------------------------------------------------------------------
 
+
 def _prompt_str(prompt: str) -> str:
     """Read a non-empty string from stdin."""
     return input(prompt).strip()
@@ -144,6 +148,7 @@ def _prompt_range(entity: str) -> tuple[float, float]:
 # ---------------------------------------------------------------------------
 # FilterMenu  (SRP: owns DTO mutation only)
 # ---------------------------------------------------------------------------
+
 
 class FilterMenu:
     """
@@ -175,20 +180,20 @@ class FilterMenu:
     def _build_main_menu(self) -> Menu:
         items: list[MenuItem] = [
             ("Content type (movie / tv / any)", self._content_type_menu),
-            ("Genres",                          self._genre_menu),
-            ("Reviews count",                  self._reviews_menu),
-            ("Rating",                          self._rating_menu),
-            ("Release year",                   self._year_menu),
-            ("Popularity",                      self._popularity_menu),
-            ("Runtime",                         self._runtime_menu),
-            ("Language",                        self._language_menu),
-            ("Countries",                       self._country_menu),
-            ("Companies",                       self._company_menu),
-            ("Keywords",                        self._keyword_menu),
-            ("Certification",                   self._certification_menu),
-            ("Sort",                            self._sort_menu),
-            ("Random",                          self._random_menu),
-            ("Show DTO",                        lambda: print(self.dto)),
+            ("Genres", self._genre_menu),
+            ("Reviews count", self._reviews_menu),
+            ("Rating", self._rating_menu),
+            ("Release year", self._year_menu),
+            ("Popularity", self._popularity_menu),
+            ("Runtime", self._runtime_menu),
+            ("Language", self._language_menu),
+            ("Countries", self._country_menu),
+            ("Companies", self._company_menu),
+            ("Keywords", self._keyword_menu),
+            ("Certification", self._certification_menu),
+            ("Sort", self._sort_menu),
+            ("Random", self._random_menu),
+            ("Show DTO", lambda: print(self.dto)),
         ]
         return Menu(
             "FILTER MENU",
@@ -202,18 +207,24 @@ class FilterMenu:
             self.genres = get_genres(ct)
             self._sync_genres()
 
-        Menu("CONTENT TYPE", [
-            ("Movie",          lambda: switch("movie")),
-            ("TV",             lambda: switch("tv")),
-            ("Any (movie+tv)", lambda: switch("any")),
-        ]).run()
+        Menu(
+            "CONTENT TYPE",
+            [
+                ("Movie", lambda: switch("movie")),
+                ("TV", lambda: switch("tv")),
+                ("Any (movie+tv)", lambda: switch("any")),
+            ],
+        ).run()
 
     def _genre_menu(self) -> None:
-        Menu("GENRES", [
-            ("Add include", lambda: self._pick_genre(self._include)),
-            ("Add exclude", lambda: self._pick_genre(self._exclude)),
-            ("Clear all",   self._clear_genres),
-        ]).run()
+        Menu(
+            "GENRES",
+            [
+                ("Add include", lambda: self._pick_genre(self._include)),
+                ("Add exclude", lambda: self._pick_genre(self._exclude)),
+                ("Clear all", self._clear_genres),
+            ],
+        ).run()
 
     # ------------------------------------------------------------------
     # DTO mutators
@@ -278,16 +289,26 @@ class FilterMenu:
         self.dto.random = RandomDTO(enabled=True, seed=None)
 
     # Stubs — not yet implemented
-    def _year_menu(self)          -> None: print("TODO: primary_release_date / air_date")
-    def _runtime_menu(self)       -> None: print("TODO: with_runtime")
-    def _company_menu(self)       -> None: print("TODO: with_companies")
-    def _keyword_menu(self)       -> None: print("TODO: with_keywords")
-    def _certification_menu(self) -> None: print("TODO: certification")
+    def _year_menu(self) -> None:
+        print("TODO: primary_release_date / air_date")
+
+    def _runtime_menu(self) -> None:
+        print("TODO: with_runtime")
+
+    def _company_menu(self) -> None:
+        print("TODO: with_companies")
+
+    def _keyword_menu(self) -> None:
+        print("TODO: with_keywords")
+
+    def _certification_menu(self) -> None:
+        print("TODO: certification")
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     dto = create_filter_dto("any")
