@@ -97,5 +97,5 @@ Contributing
 - For local development, use a test TMDB key and run the app with `uv run`.
 
 License
-- MIT
+- Apache-2.0
 
