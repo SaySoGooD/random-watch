@@ -1,79 +1,52 @@
 # random-watch
 
-REST API for discovering random movies and TV shows via the [TMDB](https://www.themoviedb.org/) API.
+REST API for discovering random movies and TV shows using the TMDB (The Movie Database) API.
 
-**Live:** https://api.saysogood.dev/docs
+Live API docs are available at `/docs` when the application is running.
 
----
+Summary
+- Exposes endpoints to get a random movie, TV show, or mixed item based on filters.
+- Rate-limited (per-client and global) to prevent abuse.
 
-## Stack
+Tech stack
+- Python 3.14, FastAPI, uv, aiohttp
+- pydantic-settings for configuration
+- dependency-injector for dependency management
+- slowapi for request rate limiting
 
-- **Python 3.14** / **FastAPI** / **uvicorn**
-- **aiohttp** — async HTTP client for TMDB
-- **pydantic-settings** — config from `.env`
-- **dependency-injector** — DI container
-- **slowapi** — per-client rate limiting
-
----
-
-## Project structure
-
+Project structure (overview)
 ```
 src/
-├── adapter/tmdb/          # TMDB API adapter + response models
-├── application/           # Use cases, interfaces, DTOs
-│   └── find_random_video/
-│       ├── filter_dto/
-│       ├── result_dto/
-│       ├── interfaces/
-│       └── usecases/
-├── infrastructure/
-│   ├── api/               # FastAPI app, routers, middleware
-│   │   ├── __init__.py    # App factory, exception handlers, rate limiting
-│   │   ├── routers.py
-│   │   └── ratelimit_middleware.py
-│   └── models/            # Pydantic request/response models
-│       ├── base.py
-│       ├── movie.py
-│       ├── tv.py
-│       ├── any.py
-│       ├── genre.py
-│       └── enums.py
-└── main/
-    ├── config.py           # Pydantic settings
-    └── dependency_injection.py
+├── adapter/tmdb/          # TMDB adapter + response models
+├── application/           # Use cases, DTOs, interfaces
+└── infrastructure/        # FastAPI app, routers, middleware, API models
+    └── api/
+        ├── __init__.py    # app instance and exception handlers
+        └── routers.py
 ```
 
----
+Quick start
 
-## Getting started
-
-### Requirements
-
+Requirements
 - Python 3.14+
-- [uv](https://github.com/astral-sh/uv)
-- TMDB API access token — get one at https://www.themoviedb.org/settings/api
+- TMDB API access token: https://www.themoviedb.org/settings/api
 
-### Install
-
+Install
 ```bash
 git clone https://github.com/SaySoGooD/random-watch.git
 cd random-watch
 uv sync
 ```
 
-### Configure
-
+Configure
 ```bash
 cp .env.example .env
+# Edit .env and set TMDB_ACCESS_TOKEN and other options if needed
 ```
 
-`.env`:
-
-```env
+Example `.env` (defaults in `.env.example`)
+```
 TMDB_ACCESS_TOKEN=your_token_here
-
-# Optional (defaults shown)
 API_HOST=0.0.0.0
 API_PORT=8000
 API_RATE_LIMIT_PER_CLIENT=35
@@ -81,31 +54,26 @@ API_RATE_LIMIT_GLOBAL=35
 API_RATE_LIMIT_WINDOW=10
 ```
 
-### Run
-
+Run
 ```bash
 uv run python -m src
 ```
 
----
+Open the interactive docs: http://localhost:8000/docs
 
-## Endpoints
+Endpoints
+- `GET /health` — health check
+- `GET /genres/movie` — movie genres
+- `GET /genres/tv` — TV genres
+- `POST /random/movie` — random movie by filters
+- `POST /random/tv` — random TV show by filters
+- `POST /random/any` — mixed random item
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Liveness probe |
-| `GET` | `/genres/movie` | All available movie genres |
-| `GET` | `/genres/tv` | All available TV show genres |
-| `POST` | `/random/movie` | Random movie by filters |
-| `POST` | `/random/tv` | Random TV show by filters |
-| `POST` | `/random/any` | Mixed random collection |
+See the Swagger UI for full request/response schemas and examples.
 
-Full interactive docs: `/docs`
-
-### Example
-
+Example request
 ```bash
-curl -X POST https://api.saysogood.dev/random/movie \
+curl -X POST http://localhost:8000/random/movie \
   -H "Content-Type: application/json" \
   -d '{
     "vote_average_gte": 7.5,
@@ -115,11 +83,20 @@ curl -X POST https://api.saysogood.dev/random/movie \
   }'
 ```
 
----
+Rate limiting
+- Per-client and global limits configurable via environment variables.
+- Exceeding limits returns `429 Too Many Requests`.
 
-## Rate limiting
+Tests
+```bash
+pytest -q
+```
 
-- **Per client:** 35 requests / 10 seconds
-- **Global:** 35 requests / 10 seconds across all clients
+Contributing
+- Open pull requests with clear descriptions and test coverage where appropriate.
+- For local development, use a test TMDB key and run the app with `uv run`.
 
-Both limits return `429` when exceeded.
+License
+- MIT
+
+If you want, I can add an "Architecture" section, detailed examples for each endpoint, or translate this back to Russian.
