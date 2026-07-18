@@ -99,4 +99,3 @@ Contributing
 License
 - MIT
 
-If you want, I can add an "Architecture" section, detailed examples for each endpoint, or translate this back to Russian.
