@@ -12,16 +12,26 @@ from src.application.find_random_video.exceptions import (
     APIServerError,
     APIUnauthorizedError,
 )
-from src.infrastructure.api.routers import router
 from src.infrastructure.api.ratelimit_middleware import GlobalRateLimitMiddleware
+from src.infrastructure.api.routers import router
+from src.main.dependency_injection import container
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["35/10seconds"])
+_config = container.config()
 
-app = FastAPI(title="Random Watch API", version="0.1.0")
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[f"{_config.API_RATE_LIMIT_PER_CLIENT}/{_config.API_RATE_LIMIT_WINDOW}seconds"],
+)
+
+app = FastAPI(title=_config.API_TITLE, version=_config.API_VERSION)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(GlobalRateLimitMiddleware, max_requests=35, window_seconds=10)
+app.add_middleware(
+    GlobalRateLimitMiddleware,
+    max_requests=_config.API_RATE_LIMIT_GLOBAL,
+    window_seconds=_config.API_RATE_LIMIT_WINDOW,
+)
 app.include_router(router)
 
 
@@ -48,5 +58,6 @@ async def server_error_handler(request: Request, exc: APIServerError) -> JSONRes
 @app.exception_handler(APINotFoundError)
 async def not_found_handler(request: Request, exc: APINotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
+
 
 __all__ = ["app"]
