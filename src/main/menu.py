@@ -1,26 +1,22 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Callable, Literal
 
 from src.application.find_random_video.filter_dto.any_filter_dto import AnyFilterDTO
-from src.application.find_random_video.filter_dto.base_filter_dto import (
-    base_filter_values,
-)
-from src.application.find_random_video.filter_dto.filter_settings_dto import (
-    GenreDTO,
-    RandomDTO,
-)
+from src.application.find_random_video.filter_dto.base_filter_dto import base_filter_values
+from src.application.find_random_video.filter_dto.filter_settings_dto import GenreDTO, RandomDTO
 from src.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
 from src.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
+from src.application.find_random_video.result_dto.movie_dto import MovieDTO
+from src.application.find_random_video.result_dto.tv_dto import TvDTO
+from src.main.dependency_injection import container
 
 FilterDTO = MovieFilterDTO | TvFilterDTO | AnyFilterDTO
 ContentType = Literal["movie", "tv", "any"]
 
 
-def create_filter_dto(
-    content_type: ContentType,
-    source: FilterDTO | None = None,
-) -> FilterDTO:
+def create_filter_dto(content_type: ContentType, source: FilterDTO | None = None) -> FilterDTO:
     """Create a FilterDTO of *content_type*, copying shared fields from *source*."""
     shared = base_filter_values(source) if source else {}
     match content_type:
@@ -67,7 +63,56 @@ def get_genres(content_type: ContentType) -> list[GenreDTO]:
 
 
 # ---------------------------------------------------------------------------
-# Generic console menu  (SRP: owns loop + render only)
+# Result rendering
+# ---------------------------------------------------------------------------
+
+
+def _render_movie(movie: MovieDTO) -> None:
+    print(f"\n{'─' * 40}")
+    print(f"🎬  {movie.title}")
+    if movie.original_title and movie.original_title != movie.title:
+        print(f"    ({movie.original_title})")
+    if movie.release_date:
+        print(f"📅  {movie.release_date[:4]}")
+    if movie.vote_average is not None:
+        print(f"⭐  {movie.vote_average:.1f}  ({movie.vote_count} votes)")
+    if movie.overview:
+        print(f"\n{movie.overview[:300]}{'...' if len(movie.overview) > 300 else ''}")
+    print(f"🔗  https://www.themoviedb.org/movie/{movie.id}")
+
+
+def _render_tv(tv: TvDTO) -> None:
+    print(f"\n{'─' * 40}")
+    print(f"📺  {tv.name}")
+    if tv.original_name and tv.original_name != tv.name:
+        print(f"    ({tv.original_name})")
+    if tv.first_air_date:
+        print(f"📅  {tv.first_air_date[:4]}")
+    if tv.vote_average is not None:
+        print(f"⭐  {tv.vote_average:.1f}  ({tv.vote_count} votes)")
+    if tv.overview:
+        print(f"\n{tv.overview[:300]}{'...' if len(tv.overview) > 300 else ''}")
+    print(f"🔗  https://www.themoviedb.org/tv/{tv.id}")
+
+
+def render_results(results: list[MovieDTO | TvDTO]) -> None:
+    """Pretty-print a list of movies and TV shows."""
+    if not results:
+        print("\nNo results found.")
+        return
+    print(f"\n{'=' * 40}")
+    print(f"  Found {len(results)} result(s)")
+    print(f"{'=' * 40}")
+    for item in results:
+        if isinstance(item, MovieDTO):
+            _render_movie(item)
+        else:
+            _render_tv(item)
+    print(f"\n{'─' * 40}")
+
+
+# ---------------------------------------------------------------------------
+# Generic console menu
 # ---------------------------------------------------------------------------
 
 MenuItem = tuple[str, Callable[[], None]]
@@ -81,9 +126,6 @@ class Menu:
       - Render numbered items to stdout.
       - Read a single integer from stdin and dispatch to the matching action.
       - Loop until the user selects the implicit "Back / Exit" option.
-
-    Adding a new item never requires editing this class (OCP):
-    callers simply extend the *items* list.
     """
 
     def __init__(
@@ -94,7 +136,7 @@ class Menu:
     ) -> None:
         self._title = title
         self._items = items
-        self._subtitle = subtitle  # dynamic line shown under the title
+        self._subtitle = subtitle
 
     def run(self) -> None:
         """Run the menu loop until the back/exit option is selected."""
@@ -105,10 +147,6 @@ class Menu:
                 break
             if 1 <= choice <= len(self._items):
                 self._items[choice - 1][1]()
-
-    # ------------------------------------------------------------------
-    # Private
-    # ------------------------------------------------------------------
 
     def _render(self) -> None:
         print(f"\n{'=' * 32}\n  {self._title}")
@@ -128,7 +166,7 @@ class Menu:
 
 
 # ---------------------------------------------------------------------------
-# Input helpers  (DRY: one place for each repeated input pattern)
+# Input helpers
 # ---------------------------------------------------------------------------
 
 
@@ -146,21 +184,12 @@ def _prompt_range(entity: str) -> tuple[float, float]:
 
 
 # ---------------------------------------------------------------------------
-# FilterMenu  (SRP: owns DTO mutation only)
+# FilterMenu
 # ---------------------------------------------------------------------------
 
 
 class FilterMenu:
-    """
-    Interactive menu for configuring a FilterDTO.
-
-    Responsibilities (SRP):
-      - Build the menu structure once.
-      - Mutate self.dto in response to user choices.
-
-    Adding a new filter option requires only appending to the items list
-    inside _build_main_menu — run() is never touched (OCP).
-    """
+    """Interactive menu for configuring a FilterDTO."""
 
     def __init__(self, dto: FilterDTO, genres: list[GenreDTO]) -> None:
         self.dto = dto
@@ -172,10 +201,6 @@ class FilterMenu:
         """Run the filter menu and return the configured DTO."""
         self._build_main_menu().run()
         return self.dto
-
-    # ------------------------------------------------------------------
-    # Menu builders
-    # ------------------------------------------------------------------
 
     def _build_main_menu(self) -> Menu:
         items: list[MenuItem] = [
@@ -225,10 +250,6 @@ class FilterMenu:
                 ("Clear all", self._clear_genres),
             ],
         ).run()
-
-    # ------------------------------------------------------------------
-    # DTO mutators
-    # ------------------------------------------------------------------
 
     def _pick_genre(self, target: list[GenreDTO]) -> None:
         """Display genre list and append the chosen genre to *target*."""
@@ -288,7 +309,6 @@ class FilterMenu:
     def _random_menu(self) -> None:
         self.dto.random = RandomDTO(enabled=True, seed=None)
 
-    # Stubs — not yet implemented
     def _year_menu(self) -> None:
         print("TODO: primary_release_date / air_date")
 
@@ -306,11 +326,102 @@ class FilterMenu:
 
 
 # ---------------------------------------------------------------------------
+# Main menu
+# ---------------------------------------------------------------------------
+
+
+class MainMenu:
+    """Top-level application menu."""
+
+    def __init__(self) -> None:
+        self._dto: FilterDTO = create_filter_dto("any")
+        self._movie_genres: list[GenreDTO] = []
+        self._tv_genres: list[GenreDTO] = []
+
+    def run(self) -> None:
+        """Run the main menu loop."""
+        self._load_genres()
+        Menu(
+            "RANDOM WATCH",
+            [
+                ("Configure filters", self._configure_filters),
+                ("Find random collection (movie + tv)", self._find_collection),
+                ("Find random movie", self._find_movie),
+                ("Find random TV show", self._find_tv),
+            ],
+        ).run()
+
+    def _load_genres(self) -> None:
+        """Fetch genres from the API once on startup."""
+        async def _fetch() -> tuple[list[GenreDTO], list[GenreDTO]]:
+            async with container.tmdb_adapter() as adapter:
+                return await asyncio.gather(
+                    adapter.fetch_movie_genres(),
+                    adapter.fetch_tv_genres(),
+                )
+
+        try:
+            self._movie_genres, self._tv_genres = asyncio.run(_fetch())
+        except Exception as e:
+            print(f"\n[Warning] Could not load genres: {e}")
+
+    def _get_genres(self, content_type: ContentType) -> list[GenreDTO]:
+        """Return genres for the given content type."""
+        match content_type:
+            case "movie":
+                return self._movie_genres
+            case "tv":
+                return self._tv_genres
+            case "any":
+                seen: set[int] = set()
+                result: list[GenreDTO] = []
+                for genre in self._movie_genres + self._tv_genres:
+                    if genre.id not in seen:
+                        seen.add(genre.id)
+                        result.append(genre)
+                return result
+
+    def _configure_filters(self) -> None:
+        content_type: ContentType = (
+            self._dto.contentType if hasattr(self._dto, "contentType") else "any"
+        )
+        self._dto = FilterMenu(self._dto, self._get_genres(content_type)).run()
+
+    def _find_collection(self) -> None:
+        """Run GetRandomCollectionUseCase and display results."""
+        try:
+            use_case = container.get_random_collection_usecase()
+            assert isinstance(self._dto, AnyFilterDTO)
+            results = asyncio.run(use_case(self._dto, count=5))
+            render_results(results)
+        except Exception as e:
+            print(f"\n[Error] {e}")
+
+    def _find_movie(self) -> None:
+        """Run GetRandomMovieUseCase and display result."""
+        try:
+            use_case = container.get_random_movie_usecase()
+            dto = self._dto if isinstance(self._dto, MovieFilterDTO) else create_filter_dto("movie", self._dto)
+            result = asyncio.run(use_case(dto))
+            render_results([result] if result else [])
+        except Exception as e:
+            print(f"\n[Error] {e}")
+
+    def _find_tv(self) -> None:
+        """Run GetRandomTvUseCase and display result."""
+        try:
+            use_case = container.get_random_tv_usecase()
+            dto = self._dto if isinstance(self._dto, TvFilterDTO) else create_filter_dto("tv", self._dto)
+            result = asyncio.run(use_case(dto))
+            render_results([result] if result else [])
+        except Exception as e:
+            print(f"\n[Error] {e}")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 
 def main() -> None:
-    dto = create_filter_dto("any")
-    result = FilterMenu(dto, get_genres("any")).run()
-    print(result)
+    MainMenu().run()

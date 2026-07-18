@@ -24,7 +24,7 @@ class GetRandomTvUseCase(IGetRandomTvUseCase):
             replace(filter_dto, page=1),
         )
 
-        if not first_page.results:
+        if not first_page:
             return None
 
-        return random.choice(first_page.results)
+        return random.choice(first_page)

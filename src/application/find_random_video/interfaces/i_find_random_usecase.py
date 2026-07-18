@@ -7,7 +7,7 @@ from src.application.find_random_video.result_dto.tv_dto import TvDTO
 
 class IGetRandomCollectionUseCase(ABC):
     @abstractmethod
-    async def execute(
+    async def __call__(
         self,
         filter_dto: AnyFilterDTO,
         count: int = 5,

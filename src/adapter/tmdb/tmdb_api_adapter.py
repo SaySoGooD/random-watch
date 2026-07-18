@@ -78,21 +78,20 @@ class TMDBAPIAdapter(ITMDBAPIAdapter):
             await self._session.close()
             self._session = None
 
-    async def _get(
-        self, path: str, params: MovieFilterDTO | TvFilterDTO | dict
-    ) -> dict:
+    async def _get(self, path: str, params: MovieFilterDTO | TvFilterDTO | dict) -> dict:
         """Send a GET request and return the parsed JSON body."""
         raw = params if isinstance(params, dict) else api_params(params)
-        clean = {
-            k: v for k, v in {**raw, "api_key": self._api_key}.items() if v is not None
-        }
+        clean = {k: v for k, v in raw.items() if v is not None}
+
+        headers = {"Authorization": f"Bearer {self._api_key}"}
 
         try:
             async with self.session.get(
-                f"{self._BASE_URL}{path}", params=clean
+                f"{self._BASE_URL}{path}", params=clean, headers=headers
             ) as response:
                 match response.status:
                     case 401:
+                        print(f"Unauthorized access to TMDB API. Check your API key: {self._api_key}")
                         raise APIUnauthorizedError("Invalid or missing API key.")
                     case 404:
                         raise APINotFoundError(f"Resource not found: {path}")

@@ -1,6 +1,4 @@
-from src.main.dependency_injection import container
+import uvicorn
 
 if __name__ == "__main__":
-    await container.init_resources()
-
-    use_case = container.get_random_collection_usecase()
+    uvicorn.run("src.infrastructure.api:app", host="0.0.0.0", port=8001, reload=True)

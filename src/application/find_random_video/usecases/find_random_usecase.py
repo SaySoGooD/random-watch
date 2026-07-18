@@ -29,8 +29,8 @@ class GetRandomCollectionUseCase:
         )
 
         result: list[MovieDTO | TvDTO] = [
-            *movies.results,
-            *tvs.results,
+            *movies,
+            *tvs,
         ]
 
         random.shuffle(result)
