@@ -3,14 +3,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import ClientResponseError
 
-from src.adapter.tmdb.tmdb_api_adapter import TMDBAPIAdapter
-from src.application.find_random_video.filter_dto.filter_settings_dto import GenreDTO
-from src.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
-from src.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
-from src.application.find_random_video.result_dto.movie_dto import MovieDTO
-from src.application.find_random_video.result_dto.tv_dto import TvDTO
+from random_watch.adapter.tmdb.tmdb_api_adapter import TMDBAPIAdapter
+from random_watch.entities.genre import Genre
+from random_watch.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
+from random_watch.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
+from random_watch.entities.movie import Movie
+from random_watch.entities.tv import Tv
 
-_ADAPTER_MODULE = "src.adapter.tmdb.tmdb_api_adapter"
+_ADAPTER_MODULE = "random_watch.adapter.tmdb.tmdb_api_adapter"
 
 _API_KEY = "test_api_key_abc"
 _BASE_URL = "https://api.themoviedb.org/3"
@@ -133,16 +133,16 @@ class TestFetchRandomMovies:
 
     @pytest.mark.asyncio
     async def test_returns_list_of_movie_dtos(self):
-        """Response is mapped to a plain list of MovieDTO instances."""
+        """Response is mapped to a plain list of Movie instances."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_MOVIE_PAYLOAD))
         result = await adapter.fetch_random_movies(MagicMock(spec=MovieFilterDTO))
 
         assert isinstance(result, list)
-        assert all(isinstance(item, MovieDTO) for item in result)
+        assert all(isinstance(item, Movie) for item in result)
 
     @pytest.mark.asyncio
     async def test_results_contain_correct_movie_dtos(self):
-        """Each item in the result list is a fully populated MovieDTO."""
+        """Each item in the result list is a fully populated Movie."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_MOVIE_PAYLOAD))
         result = await adapter.fetch_random_movies(MagicMock(spec=MovieFilterDTO))
 
@@ -203,7 +203,7 @@ class TestFetchRandomMovies:
 
     @pytest.mark.asyncio
     async def test_multiple_movies_all_mapped(self):
-        """All items in a multi-result response are mapped to MovieDTO instances."""
+        """All items in a multi-result response are mapped to Movie instances."""
         second = {**_MOVIE_PAYLOAD["results"][0], "id": 999, "title": "Dune"}
         payload = {**_MOVIE_PAYLOAD, "results": [_MOVIE_PAYLOAD["results"][0], second]}
 
@@ -226,16 +226,16 @@ class TestFetchRandomTv:
 
     @pytest.mark.asyncio
     async def test_returns_list_of_tv_dtos(self):
-        """Response is mapped to a plain list of TvDTO instances."""
+        """Response is mapped to a plain list of Tv instances."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_TV_PAYLOAD))
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
         assert isinstance(result, list)
-        assert all(isinstance(item, TvDTO) for item in result)
+        assert all(isinstance(item, Tv) for item in result)
 
     @pytest.mark.asyncio
     async def test_results_contain_correct_tv_dtos(self):
-        """Each item in the result list is a fully populated TvDTO."""
+        """Each item in the result list is a fully populated Tv."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_TV_PAYLOAD))
         result = await adapter.fetch_random_tv(MagicMock(spec=TvFilterDTO))
 
@@ -290,12 +290,12 @@ class TestFetchMovieGenres:
 
     @pytest.mark.asyncio
     async def test_returns_list_of_genre_dtos(self):
-        """Response is mapped to a plain list of GenreDTO instances."""
+        """Response is mapped to a plain list of Genre instances."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_GENRES_PAYLOAD))
         result = await adapter.fetch_movie_genres()
 
         assert isinstance(result, list)
-        assert all(isinstance(item, GenreDTO) for item in result)
+        assert all(isinstance(item, Genre) for item in result)
 
     @pytest.mark.asyncio
     async def test_all_genres_mapped(self):
@@ -307,7 +307,7 @@ class TestFetchMovieGenres:
 
     @pytest.mark.asyncio
     async def test_genre_dto_fields_mapped_correctly(self):
-        """Each GenreDTO carries the correct id and name from the API response."""
+        """Each Genre carries the correct id and name from the API response."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_GENRES_PAYLOAD))
         result = await adapter.fetch_movie_genres()
 
@@ -369,13 +369,13 @@ class TestFetchTvGenres:
 
     @pytest.mark.asyncio
     async def test_returns_list_of_genre_dtos(self):
-        """Response is mapped to a plain list of GenreDTO instances."""
+        """Response is mapped to a plain list of Genre instances."""
         adapter = TMDBAPIAdapter(_API_KEY, _make_session(_GENRES_PAYLOAD))
         result = await adapter.fetch_tv_genres()
 
         assert isinstance(result, list)
         assert len(result) == 3
-        assert all(isinstance(item, GenreDTO) for item in result)
+        assert all(isinstance(item, Genre) for item in result)
 
     @pytest.mark.asyncio
     async def test_hits_genre_tv_list_endpoint(self):
