@@ -14,16 +14,40 @@ Tech stack
 - dependency-injector for dependency management
 - slowapi for request rate limiting
 
-Project structure (overview)
+Architecture
+
+Layered (clean) architecture. Dependencies point inward only: outer layers know about inner ones, never the reverse.
+
 ```
-src/
-├── adapter/tmdb/          # TMDB adapter + response models
-├── application/           # Use cases, DTOs, interfaces
-└── infrastructure/        # FastAPI app, routers, middleware, API models
-    └── api/
-        ├── __init__.py    # app instance and exception handlers
-        └── routers.py
+src/random_watch/
+├── entities/                  # Innermost layer: domain entities, no external dependencies
+│   ├── movie/                 #   models.py + value_objects.py per entity
+│   ├── tv/
+│   └── genre/
+├── application/               # Use cases and ports
+│   ├── common/errors.py       #   ApplicationError, *NotFoundError
+│   └── find_random_video/
+│       ├── filter_dto/        #   filter DTOs the application accepts
+│       ├── interfaces/        #   gateway Protocols + usecase interfaces
+│       └── usecases/
+├── adapter/tmdb/              # Outgoing side: TMDB gateway
+│   ├── models/                #   raw TMDB response models
+│   ├── tmdb_client.py         #   HTTP client (aiohttp), returns raw models
+│   ├── tmdb_gateway.py        #   implements gateway ports, maps models -> entities
+│   └── params.py              #   filter DTO -> TMDB query params mapping
+├── infrastructure/            # Incoming side and technical details
+│   ├── api/                   #   FastAPI routers, request/response models,
+│   │                          #   exception handlers, rate-limit middleware
+│   └── config.py              #   pydantic-settings Config
+├── dependency_injection.py    # DI container
+├── bootstrap.py               # Composition root: setup_* functions, app factory, lifespan
+└── __main__.py                # Entry point
 ```
+
+Key points
+- Use cases depend on narrow gateway `Protocol`s (`MovieGateway`, `TvGateway`, `GenreGateway`), not on TMDB. All TMDB specifics (query param names, raw response models) live behind `adapter/tmdb/`.
+- Empty search results raise application-level `*NotFoundError`s, mapped to HTTP 404 by exception handlers.
+- `bootstrap.py` assembles everything: config, DI container (with wiring), routes, middlewares, exception handlers. The lifespan hook closes the shared HTTP session on shutdown.
 
 Quick start
 
@@ -49,14 +73,14 @@ Example `.env` (defaults in `.env.example`)
 TMDB_ACCESS_TOKEN=your_token_here
 API_HOST=0.0.0.0
 API_PORT=8000
-API_RATE_LIApache-2.0_PER_CLIENT=35
-API_RATE_LIApache-2.0_GLOBAL=35
-API_RATE_LIApache-2.0_WINDOW=10
+API_RATE_LIMIT_PER_CLIENT=35
+API_RATE_LIMIT_GLOBAL=35
+API_RATE_LIMIT_WINDOW=10
 ```
 
 Run
 ```bash
-uv run python -m src
+uv run python -m random_watch
 ```
 
 Open the interactive docs: http://localhost:8000/docs
@@ -65,9 +89,9 @@ Endpoints
 - `GET /health` — health check
 - `GET /genres/movie` — movie genres
 - `GET /genres/tv` — TV genres
-- `POST /random/movie` — random movie by filters
-- `POST /random/tv` — random TV show by filters
-- `POST /random/any` — mixed random item
+- `POST /random/movie` — random movie by filters (404 if nothing matches)
+- `POST /random/tv` — random TV show by filters (404 if nothing matches)
+- `POST /random/any` — mixed random collection of movies and TV shows
 
 See the Swagger UI for full request/response schemas and examples.
 
@@ -89,8 +113,9 @@ Rate limiting
 
 Tests
 ```bash
-pytest -q
+uv run pytest -q
 ```
+The API test assembles the real app, so `TMDB_ACCESS_TOKEN` must be set (any value works — no real requests are made).
 
 Contributing
 - Open pull requests with clear descriptions and test coverage where appropriate.
@@ -98,4 +123,3 @@ Contributing
 
 License
 - Apache-2.0
-

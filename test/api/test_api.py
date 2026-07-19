@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.infrastructure.api import app
+from random_watch.bootstrap import bootstrap
 
 
 def test_health_check() -> None:
-    with TestClient(app) as client:
+    with TestClient(bootstrap()) as client:
         response = client.get("/health")
 
     assert response.status_code == 200
