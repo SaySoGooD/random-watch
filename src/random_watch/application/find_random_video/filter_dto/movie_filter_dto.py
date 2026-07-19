@@ -1,18 +1,16 @@
 from dataclasses import dataclass
 from typing import ClassVar, Literal
 
-from random_watch.application.find_random_video.filter_dto.base_filter_dto import (
-    BaseFilterDTO,
-    param,
-)
+from random_watch.application.find_random_video.filter_dto.base_filter_dto import \
+    BaseFilterDTO
 
 
 @dataclass
 class MovieFilterDTO(BaseFilterDTO):
     contentType: ClassVar[Literal["movie"]] = "movie"
 
-    primary_release_date_gte: str | None = param("primary_release_date.gte")
-    primary_release_date_lte: str | None = param("primary_release_date.lte")
+    primary_release_date_gte: str | None = None
+    primary_release_date_lte: str | None = None
     primary_release_year: int | None = None
 
     certification_country: str | None = None

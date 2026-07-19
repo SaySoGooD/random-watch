@@ -19,8 +19,12 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         async with self._lock:
             now = time.monotonic()
-            self._requests = [t for t in self._requests if now - t < self._window_seconds]
+            self._requests = [
+                t for t in self._requests if now - t < self._window_seconds
+            ]
             if len(self._requests) >= self._max_requests:
-                return JSONResponse(status_code=429, content={"detail": "Global rate limit exceeded."})
+                return JSONResponse(
+                    status_code=429, content={"detail": "Global rate limit exceeded."}
+                )
             self._requests.append(now)
         return await call_next(request)

@@ -3,25 +3,25 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from random_watch.application.common.errors import EntityNotFoundError
 from random_watch.application.find_random_video.exceptions import (
-    APIConnectionError,
-    APINotFoundError,
-    APIRateLimitError,
-    APIServerError,
-    APIUnauthorizedError,
-)
-from random_watch.entities.common.errors import EntityNotFoundError
+    APIConnectionError, APINotFoundError, APIRateLimitError, APIServerError,
+    APIUnauthorizedError)
 
 
 async def _rate_limit_handler(request: Request, exc: APIRateLimitError) -> JSONResponse:
     return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
-async def _connection_handler(request: Request, exc: APIConnectionError) -> JSONResponse:
+async def _connection_handler(
+    request: Request, exc: APIConnectionError
+) -> JSONResponse:
     return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
-async def _unauthorized_handler(request: Request, exc: APIUnauthorizedError) -> JSONResponse:
+async def _unauthorized_handler(
+    request: Request, exc: APIUnauthorizedError
+) -> JSONResponse:
     return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
@@ -33,7 +33,9 @@ async def _not_found_handler(request: Request, exc: APINotFoundError) -> JSONRes
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-async def _entity_not_found_handler(request: Request, exc: EntityNotFoundError) -> JSONResponse:
+async def _entity_not_found_handler(
+    request: Request, exc: EntityNotFoundError
+) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 

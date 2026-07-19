@@ -2,22 +2,18 @@ from types import TracebackType
 
 import aiohttp
 
-from random_watch.adapter.tmdb.models.discover_movie_response_model import (
-    TMDBDiscoverMovieResponse,
-)
-from random_watch.adapter.tmdb.models.discover_tv_response_model import TMDBDiscoverTvResponse
+from random_watch.adapter.tmdb.models.discover_movie_response_model import \
+    TMDBDiscoverMovieResponse
+from random_watch.adapter.tmdb.models.discover_tv_response_model import \
+    TMDBDiscoverTvResponse
 from random_watch.adapter.tmdb.models.genre_model import TMDBGenreResponseModel
 from random_watch.application.find_random_video.exceptions import (
-    APIConnectionError,
-    APINotFoundError,
-    APIRateLimitError,
-    APIServerError,
-    APIUnauthorizedError,
-)
+    APIConnectionError, APINotFoundError, APIRateLimitError, APIServerError,
+    APIUnauthorizedError)
 
 
-class TMDBPresenter:
-    """Talks to the TMDB REST API and returns raw TMDB models."""
+class TMDBClient:
+    """HTTP client for the TMDB REST API. Returns raw TMDB models."""
 
     _BASE_URL = "https://api.themoviedb.org/3"
 
@@ -45,6 +41,12 @@ class TMDBPresenter:
         data = await self._get("/genre/tv/list", {"language": language})
         return TMDBGenreResponseModel.model_validate(data)
 
+    async def close(self) -> None:
+        """Close the underlying HTTP session."""
+        if self._session is not None:
+            await self._session.close()
+            self._session = None
+
     @property
     def session(self) -> aiohttp.ClientSession:
         """Return the active HTTP session, creating it lazily if needed."""
@@ -56,7 +58,7 @@ class TMDBPresenter:
     def session(self, value: aiohttp.ClientSession) -> None:
         self._session = value
 
-    async def __aenter__(self) -> "TMDBPresenter":
+    async def __aenter__(self) -> TMDBClient:
         return self
 
     async def __aexit__(
@@ -65,9 +67,7 @@ class TMDBPresenter:
         exc: BaseException | None = None,
         tb: TracebackType | None = None,
     ) -> None:
-        if self._session is not None:
-            await self._session.close()
-            self._session = None
+        await self.close()
 
     async def _get(self, path: str, params: dict) -> dict:
         """Send a GET request and return the parsed JSON body."""

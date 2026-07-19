@@ -1,26 +1,31 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from random_watch.application.find_random_video.filter_dto.any_filter_dto import AnyFilterDTO
-from random_watch.application.find_random_video.filter_dto.movie_filter_dto import MovieFilterDTO
-from random_watch.application.find_random_video.filter_dto.tv_filter_dto import TvFilterDTO
-from random_watch.application.find_random_video.interfaces.i_find_random_movie_usecase import (
-    IGetRandomMovieUseCase,
-)
-from random_watch.application.find_random_video.interfaces.i_find_random_tv_usecase import (
-    IGetRandomTvUseCase,
-)
-from random_watch.application.find_random_video.interfaces.i_find_random_usecase import (
-    IGetRandomCollectionUseCase,
-)
-from random_watch.application.find_random_video.interfaces.i_tmdb_api_adapter import (
-    ITMDBAPIAdapter,
-)
-from random_watch.infrastructure.api.models.any import AnySearchQuery, RandomAnyItemModel, RandomAnyResponseModel
-from random_watch.infrastructure.api.models.genre import GenreListResponseModel, GenreModel
-from random_watch.infrastructure.api.models.movie import MovieResponseModel, MovieSearchQuery, RandomMovieResponseModel
-from random_watch.infrastructure.api.models.tv import RandomTvResponseModel, TvResponseModel, TvSearchQuery
+from random_watch.application.find_random_video.filter_dto.any_filter_dto import \
+    AnyFilterDTO
+from random_watch.application.find_random_video.filter_dto.movie_filter_dto import \
+    MovieFilterDTO
+from random_watch.application.find_random_video.filter_dto.tv_filter_dto import \
+    TvFilterDTO
+from random_watch.application.find_random_video.interfaces.gateways import \
+    GenreGateway
+from random_watch.application.find_random_video.interfaces.i_find_random_movie_usecase import \
+    IGetRandomMovieUseCase
+from random_watch.application.find_random_video.interfaces.i_find_random_tv_usecase import \
+    IGetRandomTvUseCase
+from random_watch.application.find_random_video.interfaces.i_find_random_usecase import \
+    IGetRandomCollectionUseCase
 from random_watch.dependency_injection import Container
+from random_watch.infrastructure.api.models.any import (AnySearchQuery,
+                                                        RandomAnyItemModel,
+                                                        RandomAnyResponseModel)
+from random_watch.infrastructure.api.models.genre import (
+    GenreListResponseModel, GenreModel)
+from random_watch.infrastructure.api.models.movie import (
+    MovieResponseModel, MovieSearchQuery, RandomMovieResponseModel)
+from random_watch.infrastructure.api.models.tv import (RandomTvResponseModel,
+                                                       TvResponseModel,
+                                                       TvSearchQuery)
 
 router = APIRouter()
 
@@ -30,9 +35,11 @@ def _wrap_item(item) -> RandomAnyItemModel:
     is_movie = hasattr(item, "title")
     return RandomAnyItemModel(
         type="movie" if is_movie else "tv",
-        item=MovieResponseModel.model_validate(item)
-        if is_movie
-        else TvResponseModel.model_validate(item),
+        item=(
+            MovieResponseModel.model_validate(item)
+            if is_movie
+            else TvResponseModel.model_validate(item)
+        ),
     )
 
 
@@ -46,29 +53,35 @@ async def health() -> dict[str, str]:
 @inject
 async def movie_genres(
     language: str | None = None,
-    adapter: ITMDBAPIAdapter = Depends(Provide[Container.tmdb_adapter]),
+    gateway: GenreGateway = Depends(Provide[Container.tmdb_gateway]),
 ) -> GenreListResponseModel:
     """Return all available movie genres."""
-    genres = await adapter.fetch_movie_genres(language=language)
-    return GenreListResponseModel(genres=[GenreModel(id=g.id, name=g.name) for g in genres])
+    genres = await gateway.fetch_movie_genres(language=language)
+    return GenreListResponseModel(
+        genres=[GenreModel(id=g.id, name=g.name) for g in genres]
+    )
 
 
 @router.get("/genres/tv", response_model=GenreListResponseModel)
 @inject
 async def tv_genres(
     language: str | None = None,
-    adapter: ITMDBAPIAdapter = Depends(Provide[Container.tmdb_adapter]),
+    gateway: GenreGateway = Depends(Provide[Container.tmdb_gateway]),
 ) -> GenreListResponseModel:
     """Return all available TV show genres."""
-    genres = await adapter.fetch_tv_genres(language=language)
-    return GenreListResponseModel(genres=[GenreModel(id=g.id, name=g.name) for g in genres])
+    genres = await gateway.fetch_tv_genres(language=language)
+    return GenreListResponseModel(
+        genres=[GenreModel(id=g.id, name=g.name) for g in genres]
+    )
 
 
 @router.post("/random/movie", response_model=RandomMovieResponseModel)
 @inject
 async def random_movie(
     query: MovieSearchQuery,
-    usecase: IGetRandomMovieUseCase = Depends(Provide[Container.get_random_movie_usecase]),
+    usecase: IGetRandomMovieUseCase = Depends(
+        Provide[Container.get_random_movie_usecase]
+    ),
 ) -> RandomMovieResponseModel:
     """Return a randomly selected movie matching the given filters."""
     movie = await usecase(MovieFilterDTO(**query.model_dump()))
